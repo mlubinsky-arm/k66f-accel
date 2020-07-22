@@ -9,6 +9,16 @@ Output format: every record has 4 integer values, separated by space :
 
 Compiled with baudrate: 115200 
 
+
+### Reading data from the serial port using minicom
+```
+File min.sh allows to read and store data from the serial port using minicom. 
+Output will be in file log.txt
+Install minicom (brew install minicom).
+On Mac configure Terminal.app: Preferncess -> Profiles -> Keyboard -> Checkbox "Use Options as Meta key"
+To exit from minicom under Mac Terminal: press "option and x". You will see the confimation dialog.
+```
+
 ### Sensitivity
 ```
 Sensitivity of an accelerometer defines at what rate the sensor converts mechanical energy into an electric signal (the output); 
