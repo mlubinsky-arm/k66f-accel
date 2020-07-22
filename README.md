@@ -1,7 +1,13 @@
 # FRDM-K66F accelerometer
 
+Output format: every record has 4 integer values, separated by space :
 
-baudrate: 115200 or 9600 
+ 1) Time from the start in (microseconds)
+ 2) X accelaration
+ 3) Y accelaration
+ 4) Z acceleration
+
+Compiled with baudrate: 115200 
 
 ### Sensitivity
 ```

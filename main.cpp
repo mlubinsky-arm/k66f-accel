@@ -30,6 +30,8 @@ InterruptIn start_sw(PTA10); // switch SW3
 bool fxos_int1_triggered = false;
 bool fxos_int2_triggered = false;
 uint32_t us_ellapsed = 0;
+uint32_t previous_us_ellapsed = 0;
+
 bool start_sw_triggered = false;
 
 void trigger_fxos_int1(void)
@@ -49,7 +51,9 @@ void trigger_start_sw(void)
 }
 
 void print_accel(){
-  pc.printf("Time=%d  X=%5d  Y=%5d  Z=%5d \r\n", us_ellapsed, fxos.getAccelX(), fxos.getAccelY(), fxos.getAccelZ());
+ if ( us_ellapsed == previous_us_ellapsed) return;
+  pc.printf("%d %d %d %d\r\n", us_ellapsed, fxos.getAccelX(), fxos.getAccelY(), fxos.getAccelZ());
+  previous_us_ellapsed = us_ellapsed;
 }
 void print_reading()
 {
@@ -59,13 +63,17 @@ void print_reading()
               fxos.getMagnetX(), fxos.getMagnetY(), fxos.getMagnetZ());
 }
 
+#define BAUDRATE 115200
+//#define BAUDRATE 9600
+
 int main(void)
 {
     // Setup
     t.reset();
+    
     //pc.baud(115200); // Print quickly! 200Hz x line of output data!
-    pc.baud(9600); // Print quickly! 200Hz x line of output data!
-
+    //pc.baud(9600); // Print quickly! 200Hz x line of output data!
+    pc.baud(BAUDRATE);
     // Lights off (FRDM-K64F has active-low LEDs)
     green.write(1);
     red.write(1);
@@ -88,8 +96,13 @@ int main(void)
     }
 */
     // Diagnostic printing of the FXOS WHOAMI register value
-    printf("\r\n\nFXOS8700Q Who Am I= %X\r\n", fxos.get_whoami());
 
+    while (1 >2) {
+         printf("\r\n\nFXOS8700Q Who Am I= %X\r\n", fxos.get_whoami());
+         uint8_t scale = fxos.get_accel_scale();
+         // FXOS8700CQ_XYZ_DATA_CFG_FS2(1)    ... return 4
+         printf ("\n scale=%hhu", scale);
+    }
     // Iterrupt for active-low interrupt line from FXOS
     // Configured with only one interrupt on INT2 signaling Data-Ready
     fxos_int2.fall(&trigger_fxos_int2);
@@ -102,10 +115,11 @@ int main(void)
     green.write(0); // ready-green on
 
     // Example data printing
-    fxos.get_data();
+/* 
+   fxos.get_data();
     //print_reading();
     print_accel();
-/*
+
     pc.printf("Waiting for data collection trigger on SW3\r\n");
 
     while(true) {
@@ -117,10 +131,10 @@ int main(void)
 
     green.write(1); // ready-green off
     blue.write(0); // working-blue on
-
+   uint8_t get_accel_scale() returns  2, 4, or 8, depending on part configuration; 0 on error
    pc.printf("Started data collection. Accelerometer at max %dg.\r\n",
    fxos.get_accel_scale());
-
+    //uint8_t get_data(); returns 0 on success
     fxos.get_data(); // clear interrupt from device
     fxos_int2_triggered = false; // un-trigger
 */
