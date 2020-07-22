@@ -2,9 +2,9 @@
 
 Output format: every record has 4 integer values, separated by space :
 
- 1) Time from the start in (microseconds)
- 2) X accelaration
- 3) Y accelaration
+ 1) Time from the start in microseconds
+ 2) X acceleration
+ 3) Y acceleration
  4) Z acceleration
 
 Compiled with baudrate: 115200 
