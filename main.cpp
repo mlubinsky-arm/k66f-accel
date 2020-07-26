@@ -29,8 +29,21 @@ InterruptIn start_sw(PTA10); // switch SW3
 // Interrupt status flags and data
 bool fxos_int1_triggered = false;
 bool fxos_int2_triggered = false;
-uint32_t us_ellapsed = 0;
-uint32_t previous_us_ellapsed = 0;
+uint32_t us_elapsed = 0;
+uint32_t previous_us_elapsed = 0;
+
+ uint32_t us_new_interval = 0; // 2 sec
+
+int x=0;
+int y=0;
+int z=0;
+
+int x_arr[1024]={0};
+int y_arr[1024]={0};
+int z_arr[1024]={0};
+
+int  size=0;
+
 
 bool start_sw_triggered = false;
 
@@ -42,7 +55,7 @@ void trigger_fxos_int1(void)
 void trigger_fxos_int2(void)
 {
     fxos_int2_triggered = true;
-    us_ellapsed = t.read_us();
+    us_elapsed = t.read_us();
 }
 
 void trigger_start_sw(void)
@@ -50,59 +63,122 @@ void trigger_start_sw(void)
     start_sw_triggered = true;
 }
 
+float get_mean(int* arr, int size){
+    float sum=0.0;
+    for (int i=0; i<size; i++){
+        sum += arr[i];
+    }
+    return sum / float(size);
+}
+
+float get_std(int* arr, int size, float mean){
+   float varsum=0.0;
+   for (int i=0; i<size; i++){
+       varsum += pow((arr[i] - mean), 2);
+   }
+   return sqrt(varsum/size);
+}
+
+float linear_model(){
+/*
+Sample 2 seconds of raw data
+Calculate, ideally by using CMSIS-DSP
+x_s = standardDeviation(x)
+y_s = standardDeviation(y)
+z_s = standardDeviation(z)
+xy_s = x_s/y_s
+yz_s = y_s/z_s
+xz_s = x_s/z_s
+x_m = mean(x)
+y_m = mean(y)
+z_m = mean(z)
+order features
+features = ['x_s','y_s','z_s', 'xy_s', 'yz_s', 'xz_s', 'x_m','y_m','z_m']
+Coefficients
+[0.00084098]
+[[ 3.20564208e-01 -2.11376098e-01 9.24422019e-01 6.76794213e-04
+ -1.05621872e-02 -4.43306975e-04 5.12216590e-01 -2.13622099e-01
+ -4.05966192e-02]]
+*/
+ 
+ float x_m = get_mean(x_arr, size);
+ float y_m = get_mean(y_arr, size);
+ float z_m = get_mean(z_arr, size);
+
+ float x_s = get_std(x_arr, size, x_m);
+ float y_s = get_std(y_arr, size, y_m);
+ float z_s = get_std(z_arr, size, z_m);
+ 
+ float xy_s = x_s/y_s;
+ float yz_s = y_s/z_s;
+ float xz_s = x_s/z_s;
+
+ static float c[] = {
+   3.20564208e-01,    // 0
+  -2.11376098e-01,
+   9.24422019e-01,    // 2
+   6.76794213e-04,
+  -1.05621872e-02,    // 4
+  -4.43306975e-04,
+   5.12216590e-01,    // 6
+  -2.13622099e-01,
+  -4.05966192e-02     // 8
+ };
+
+ return 0.00084098 +
+        c[0] * x_s +
+        c[1] * y_s +
+        c[2] * z_s +
+        c[3] * xy_s +
+        c[4] * yz_s +
+        c[5] * xz_s +
+        c[6] * x_m +
+        c[7] * y_m +
+        c[8] * z_m
+        ;
+}
+
 void print_accel(){
- if ( us_ellapsed == previous_us_ellapsed) return;
-  pc.printf("%d %d %d %d\r\n", us_ellapsed, fxos.getAccelX(), fxos.getAccelY(), fxos.getAccelZ());
-  previous_us_ellapsed = us_ellapsed;
+ if ( us_elapsed == previous_us_elapsed) return;
+  if ( (us_elapsed - us_new_interval) > 2000000  ) { //2 SECONDS
+     us_new_interval =  us_elapsed;
+     linear_model();
+     size=0;
+  }
+
+  x=fxos.getAccelX();
+  y=fxos.getAccelY();
+  z=fxos.getAccelZ();
+  x_arr[size]=x;
+  y_arr[size]=y;
+  z_arr[size]=z;
+  size++;
+
+  pc.printf("%lu %d %d %d\r\n", us_elapsed, x, y, z);
+  previous_us_elapsed = us_elapsed;
 }
 void print_reading()
 {
-    pc.printf("%d A X:%5d,Y:%5d,Z:%5d   M X:%5d,Y:%5d,Z:%5d\r\n",
-              us_ellapsed,
+    pc.printf("%lu A X:%5d,Y:%5d,Z:%5d   M X:%5d,Y:%5d,Z:%5d\r\n",
+              us_elapsed,
               fxos.getAccelX(), fxos.getAccelY(), fxos.getAccelZ(),
               fxos.getMagnetX(), fxos.getMagnetY(), fxos.getMagnetZ());
 }
 
 #define BAUDRATE 115200
-//#define BAUDRATE 9600
 
 int main(void)
 {
     // Setup
     t.reset();
-    
-    //pc.baud(115200); // Print quickly! 200Hz x line of output data!
-    //pc.baud(9600); // Print quickly! 200Hz x line of output data!
+
     pc.baud(BAUDRATE);
-    // Lights off (FRDM-K64F has active-low LEDs)
+    // Lights off
     green.write(1);
     red.write(1);
     blue.write(1);
-/*
-    int i=0;
-    int j=1;
-    int k=0;
 
-    while (true) {
-     
-     printf ("\n %d %d %d" , i,j,k);
-     thread_sleep_for(BLINKING_RATE_MS);
-     i++; j++; k++;
-     if (i==0) i=1;
-     if (j==0) j=1;
-     if (k==0) k=1;
-     j++;
-     k++;
-    }
-*/
-    // Diagnostic printing of the FXOS WHOAMI register value
-
-    while (1 >2) {
-         printf("\r\n\nFXOS8700Q Who Am I= %X\r\n", fxos.get_whoami());
-         uint8_t scale = fxos.get_accel_scale();
-         // FXOS8700CQ_XYZ_DATA_CFG_FS2(1)    ... return 4
-         printf ("\n scale=%hhu", scale);
-    }
+ 
     // Iterrupt for active-low interrupt line from FXOS
     // Configured with only one interrupt on INT2 signaling Data-Ready
     fxos_int2.fall(&trigger_fxos_int2);
@@ -115,53 +191,11 @@ int main(void)
     green.write(0); // ready-green on
 
     // Example data printing
-/* 
-   fxos.get_data();
-    //print_reading();
-    print_accel();
 
-    pc.printf("Waiting for data collection trigger on SW3\r\n");
-
-    while(true) {
-        if(start_sw_triggered) {
-            break;
-        }
-        wait_ms(50); // just to slow the loop, fast enough for UX
-    }
-
-    green.write(1); // ready-green off
-    blue.write(0); // working-blue on
-   uint8_t get_accel_scale() returns  2, 4, or 8, depending on part configuration; 0 on error
-   pc.printf("Started data collection. Accelerometer at max %dg.\r\n",
-   fxos.get_accel_scale());
-    //uint8_t get_data(); returns 0 on success
-    fxos.get_data(); // clear interrupt from device
-    fxos_int2_triggered = false; // un-trigger
-*/
     t.start(); // start timer and enter collection loop
-    //while (t.read_ms() <= DATA_RECORD_TIME_MS) {
+
     while (1) {
         fxos.get_data();
         print_accel();
-/*
-        if(fxos_int2_triggered) {
-            fxos_int2_triggered = false; // un-trigger
-            fxos.get_data();
-            print_reading(); // outpouring of data !!
-        }
-
-        // Continuous polling of interrupt status is not efficient, but...
-        wait_us(500); // 1/10th the period of the 200Hz sample rate
-*/
-    }
-
-    blue.write(1); // working-blue off
-    red.write(0); // complete-red on
-
-    pc.printf("Done. Reset to repeat.\r\n");
-
-    while(true) {
-        pc.putc('.'); // idle dots
-        wait(1.0);
     }
 }
