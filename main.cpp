@@ -100,7 +100,7 @@ Coefficients
  -1.05621872e-02 -4.43306975e-04 5.12216590e-01 -2.13622099e-01
  -4.05966192e-02]]
 */
- 
+
  float x_m = get_mean(x_arr, size);
  float y_m = get_mean(y_arr, size);
  float z_m = get_mean(z_arr, size);
@@ -108,7 +108,7 @@ Coefficients
  float x_s = get_std(x_arr, size, x_m);
  float y_s = get_std(y_arr, size, y_m);
  float z_s = get_std(z_arr, size, z_m);
- 
+
  float xy_s = x_s/y_s;
  float yz_s = y_s/z_s;
  float xz_s = x_s/z_s;
@@ -140,10 +140,17 @@ Coefficients
 
 void print_accel(){
  if ( us_elapsed == previous_us_elapsed) return;
-  if ( (us_elapsed - us_new_interval) > 2000000  ) { //2 SECONDS
+
+  if ( size > 0 && (us_elapsed - us_new_interval) > 2000000  ) { //2 SECONDS
      us_new_interval =  us_elapsed;
-     linear_model();
+     float linear = linear_model();
      size=0;
+     //Logistic regression
+     float  linear_regression = 1.0 / (1.0 + exp(-linear));
+     printf ("\n logistic_regression=%.2f linear=%.2f ", linear_regression, linear);
+     if (linear_regression > 0.5){
+         printf ("\n -----   > 0.5 ------");
+     }
   }
 
   x=fxos.getAccelX();
