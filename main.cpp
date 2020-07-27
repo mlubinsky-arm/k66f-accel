@@ -11,7 +11,7 @@ Serial pc(USBTX, USBRX); // Primary output to demonstrate library
 
 // Pin names for FRDM-K64F
 // FXOS8700CQ fxos(PTE25, PTE24, FXOS8700CQ_SLAVE_ADDR1); // SDA, SCL, (addr << 1)
- FXOS8700CQ fxos(PTD9, PTD8, FXOS8700CQ_SLAVE_ADDR1);
+FXOS8700CQ fxos(PTD9, PTD8, FXOS8700CQ_SLAVE_ADDR1);
 
 DigitalOut green(LED_GREEN); // waiting light
 DigitalOut blue(LED_BLUE); // collection-in-progress light
@@ -32,19 +32,14 @@ bool fxos_int2_triggered = false;
 uint32_t us_elapsed = 0;
 uint32_t previous_us_elapsed = 0;
 
- uint32_t us_new_interval = 0; // 2 sec
-
-//int x=0;
-//int y=0;
-//int z=0;
+uint32_t us_new_interval = 0; // 2 sec
 
 #define MAX_SIZE 1024
 int x_arr[MAX_SIZE]={0};
 int y_arr[MAX_SIZE]={0};
 int z_arr[MAX_SIZE]={0};
 
-int  size=0;
-
+int  size=0;  // number of elements in array
 
 bool start_sw_triggered = false;
 
@@ -150,7 +145,7 @@ void print_accel(){
      printf ("\n array size=%d logistic_regression=%.2f linear=%.2f ", size, linear_regression, linear);
      size=0;
      if (linear_regression > 0.5){
-         printf ("\n -----   > 0.5 ------");
+         printf ("\n -----  linear_regression > 0.5 ------");
      }
   }
 
