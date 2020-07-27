@@ -1,15 +1,10 @@
 #include "mbed.h"
 
-//#include "platform/mbed_thread.h"
-//#define BLINKING_RATE_MS 
-
 #include "FXOS8700CQ.h"
 
-#define DATA_RECORD_TIME_MS 1000
+Serial pc(USBTX, USBRX);
 
-Serial pc(USBTX, USBRX); // Primary output to demonstrate library
-
-// Pin names for FRDM-K64F
+// Pin names for FRDM-K66F
 // FXOS8700CQ fxos(PTE25, PTE24, FXOS8700CQ_SLAVE_ADDR1); // SDA, SCL, (addr << 1)
 FXOS8700CQ fxos(PTD9, PTD8, FXOS8700CQ_SLAVE_ADDR1);
 
@@ -32,14 +27,14 @@ bool fxos_int2_triggered = false;
 uint32_t us_elapsed = 0;
 uint32_t previous_us_elapsed = 0;
 
-uint32_t us_new_interval = 0; // 2 sec
+uint32_t us_new_interval = 0; // to track the 2 sec interval
 
 #define MAX_SIZE 1024
 int x_arr[MAX_SIZE]={0};
 int y_arr[MAX_SIZE]={0};
 int z_arr[MAX_SIZE]={0};
 
-int  size=0;  // number of elements in array
+int  size=0;  // actual number of elements in arrays x_arr, y_arr, z_arr
 
 bool start_sw_triggered = false;
 
@@ -75,27 +70,7 @@ float get_std(int* arr, int size, float mean){
    return sqrt(varsum/size);
 }
 
-float linear_model(){
-/*
-Sample 2 seconds of raw data
-Calculate, ideally by using CMSIS-DSP
-x_s = standardDeviation(x)
-y_s = standardDeviation(y)
-z_s = standardDeviation(z)
-xy_s = x_s/y_s
-yz_s = y_s/z_s
-xz_s = x_s/z_s
-x_m = mean(x)
-y_m = mean(y)
-z_m = mean(z)
-order features
-features = ['x_s','y_s','z_s', 'xy_s', 'yz_s', 'xz_s', 'x_m','y_m','z_m']
-Coefficients
-[0.00084098]
-[[ 3.20564208e-01 -2.11376098e-01 9.24422019e-01 6.76794213e-04
- -1.05621872e-02 -4.43306975e-04 5.12216590e-01 -2.13622099e-01
- -4.05966192e-02]]
-*/
+float linear_model() {
 
  float x_m = get_mean(x_arr, size);
  float y_m = get_mean(y_arr, size);
@@ -137,15 +112,23 @@ Coefficients
 void print_accel(){
  if ( us_elapsed == previous_us_elapsed) return;
 
-  if ( size > 0 && (us_elapsed - us_new_interval) > 2000000  ) { //2 SECONDS
+  if ( size > 0 && (us_elapsed - us_new_interval) > 2000000  ) { // 2 seconds
      us_new_interval =  us_elapsed;
      float linear = linear_model();
      //Logistic regression
      float  linear_regression = 1.0 / (1.0 + exp(-linear));
      printf ("\n array size=%d logistic_regression=%.2f linear=%.2f ", size, linear_regression, linear);
-     size=0;
+     size=0; //start populating sensors arrays from beginning
+
      if (linear_regression > 0.5){
-         printf ("\n -----  linear_regression > 0.5 ------");
+             printf ("\n -----  linear_regression > 0.5 ------");
+             green.write(1);
+             red.write(0);
+             blue.write(1);
+     } else {
+             green.write(0);
+             red.write(1);
+             blue.write(1);
      }
   }
 
@@ -157,7 +140,8 @@ void print_accel(){
    size++;
   previous_us_elapsed = us_elapsed;
 }
-void print_reading()
+
+void print_reading() //   magnetometer and accelerometer
 {
     pc.printf("%lu A X:%5d,Y:%5d,Z:%5d   M X:%5d,Y:%5d,Z:%5d\r\n",
               us_elapsed,
@@ -165,13 +149,13 @@ void print_reading()
               fxos.getMagnetX(), fxos.getMagnetY(), fxos.getMagnetZ());
 }
 
-#define BAUDRATE 115200
+
 
 int main(void)
 {
-    // Setup
     t.reset();
 
+#define BAUDRATE 115200
     pc.baud(BAUDRATE);
     // Lights off
     green.write(1);
@@ -188,9 +172,6 @@ int main(void)
     start_sw.fall(&trigger_start_sw);
 
     green.write(0); // ready-green on
-
-    // Example data printing
-
     t.start(); // start timer and enter collection loop
 
     while (1) {
