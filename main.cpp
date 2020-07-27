@@ -116,12 +116,12 @@ void print_accel(){
      us_new_interval =  us_elapsed;
      float linear = linear_model();
      //Logistic regression
-     float  linear_regression = 1.0 / (1.0 + exp(-linear));
-     printf ("\n array size=%d logistic_regression=%.2f linear=%.2f ", size, linear_regression, linear);
+     float  logistic_regression = 1.0 / (1.0 + exp(-linear));
+     printf ("\n array size=%d logistic_regression=%.2f linear=%.2f ", size, logistic_regression, linear);
      size=0; //start populating sensors arrays from beginning
 
-     if (linear_regression > 0.5){
-             printf ("\n -----  linear_regression > 0.5 ------");
+     if (logistic_regression > 0.5){
+             printf ("\n -----  logistic_regression > 0.5 ------");
              green.write(1);
              red.write(0);
              blue.write(1);
@@ -137,7 +137,7 @@ void print_accel(){
   z_arr[size]=fxos.getAccelZ();
 
   //pc.printf("%lu x=%d y=%d z=%d size=%d \r\n", us_elapsed, x_arr[size], y_arr[size], z_arr[size], size);
-   size++;
+  size++;
   previous_us_elapsed = us_elapsed;
 }
 
@@ -148,8 +148,6 @@ void print_reading() //   magnetometer and accelerometer
               fxos.getAccelX(), fxos.getAccelY(), fxos.getAccelZ(),
               fxos.getMagnetX(), fxos.getMagnetY(), fxos.getMagnetZ());
 }
-
-
 
 int main(void)
 {
