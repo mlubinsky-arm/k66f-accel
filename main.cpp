@@ -34,13 +34,14 @@ uint32_t previous_us_elapsed = 0;
 
  uint32_t us_new_interval = 0; // 2 sec
 
-int x=0;
-int y=0;
-int z=0;
+//int x=0;
+//int y=0;
+//int z=0;
 
-int x_arr[1024]={0};
-int y_arr[1024]={0};
-int z_arr[1024]={0};
+#define MAX_SIZE 1024
+int x_arr[MAX_SIZE]={0};
+int y_arr[MAX_SIZE]={0};
+int z_arr[MAX_SIZE]={0};
 
 int  size=0;
 
@@ -144,24 +145,21 @@ void print_accel(){
   if ( size > 0 && (us_elapsed - us_new_interval) > 2000000  ) { //2 SECONDS
      us_new_interval =  us_elapsed;
      float linear = linear_model();
-     size=0;
      //Logistic regression
      float  linear_regression = 1.0 / (1.0 + exp(-linear));
-     printf ("\n logistic_regression=%.2f linear=%.2f ", linear_regression, linear);
+     printf ("\n array size=%d logistic_regression=%.2f linear=%.2f ", size, linear_regression, linear);
+     size=0;
      if (linear_regression > 0.5){
          printf ("\n -----   > 0.5 ------");
      }
   }
 
-  x=fxos.getAccelX();
-  y=fxos.getAccelY();
-  z=fxos.getAccelZ();
-  x_arr[size]=x;
-  y_arr[size]=y;
-  z_arr[size]=z;
-  size++;
+  x_arr[size]=fxos.getAccelX();
+  y_arr[size]=fxos.getAccelY();
+  z_arr[size]=fxos.getAccelZ();
 
-  pc.printf("%lu %d %d %d\r\n", us_elapsed, x, y, z);
+  //pc.printf("%lu x=%d y=%d z=%d size=%d \r\n", us_elapsed, x_arr[size], y_arr[size], z_arr[size], size);
+   size++;
   previous_us_elapsed = us_elapsed;
 }
 void print_reading()
@@ -185,7 +183,6 @@ int main(void)
     red.write(1);
     blue.write(1);
 
- 
     // Iterrupt for active-low interrupt line from FXOS
     // Configured with only one interrupt on INT2 signaling Data-Ready
     fxos_int2.fall(&trigger_fxos_int2);
